@@ -1,6 +1,16 @@
+# Node
 node_modules/
+
+# Build output
 build/
+
+# Logs
 *.log
+
+# Environment variables
 .env
 .env.*
 !.env.sample
+
+# Editor/Tool History
+.history/
