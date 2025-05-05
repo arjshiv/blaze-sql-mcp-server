@@ -2,6 +2,10 @@
 
 This project implements a Model Context Protocol (MCP) server that acts as a proxy to the BlazeSQL Natural Language Query API. It allows MCP-compatible clients (like Cursor, Claude 3 with tool use, the MCP Inspector, etc.) to interact with BlazeSQL using natural language.
 
+<a href="https://glama.ai/mcp/servers/@arjshiv/blaze-sql-mcp-server">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@arjshiv/blaze-sql-mcp-server/badge" alt="BlazeSQL Server MCP server" />
+</a>
+
 ## Features
 
 *   Exposes the BlazeSQL Natural Language Query API as an MCP tool named `blazesql_query`.
