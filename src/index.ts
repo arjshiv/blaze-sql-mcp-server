@@ -79,7 +79,7 @@ function registerBlazeSQLTool(server: Server) {
     const result: BlazeSQLResponse = await queryBlazeSQL(db_id, natural_language_request, apiKey!);
 
     if (result.success) {
-      console.error("BlazeSQL query successful. Returning structured object within content[type=json].");
+      console.error("BlazeSQL query successful. Returning structured object as compact string within content[type=text].");
       const structuredResult = {
         agent_response: result.agent_response,
         query: result.query,
@@ -88,8 +88,8 @@ function registerBlazeSQLTool(server: Server) {
       return {
         content: [
           {
-            type: "json",
-            json: JSON.stringify(structuredResult, null, 2)
+            type: "text",
+            text: JSON.stringify(structuredResult)
           }
         ]
       };

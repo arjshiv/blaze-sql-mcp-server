@@ -61,7 +61,7 @@ function registerBlazeSQLTool(server) {
         // Call the BlazeSQL API function - Assert apiKey is not null
         const result = await queryBlazeSQL(db_id, natural_language_request, apiKey);
         if (result.success) {
-            console.error("BlazeSQL query successful. Returning structured object within content[type=json].");
+            console.error("BlazeSQL query successful. Returning structured object as compact string within content[type=text].");
             const structuredResult = {
                 agent_response: result.agent_response,
                 query: result.query,
@@ -70,8 +70,8 @@ function registerBlazeSQLTool(server) {
             return {
                 content: [
                     {
-                        type: "json",
-                        json: JSON.stringify(structuredResult, null, 2)
+                        type: "text",
+                        text: JSON.stringify(structuredResult)
                     }
                 ]
             };
