@@ -8,12 +8,38 @@ This project implements a Model Context Protocol (MCP) server that acts as a pro
 *   Handles API key authentication securely via environment variables.
 *   Communicates with clients using the standard MCP stdio transport.
 
+## Workflow Diagram
+
+This diagram shows the sequence of interactions when a client uses the `blazesql_query` tool:
+
+```mermaid
+sequenceDiagram
+    participant Client as MCP Client (e.g., Cursor)
+    participant Server as BlazeSQL MCP Server (index.ts)
+    participant Env as Environment (.env)
+    participant BlazeAPI as BlazeSQL API
+
+    Client->>Server: ListTools Request (via stdio)
+    Server-->>Client: ListTools Response (tools: [blazesql_query]) (via stdio)
+
+    Client->>Server: CallTool Request (blazesql_query, db_id, nl_request) (via stdio)
+    Server->>Env: Read BLAZE_API_KEY
+    Env-->>Server: BLAZE_API_KEY
+    Server->>BlazeAPI: POST /natural_language_query_api (apiKey, db_id, nl_request)
+    BlazeAPI->>BlazeAPI: Process Query (NL->SQL, Execute)
+    BlazeAPI-->>Server: HTTPS Response (JSON: agent_response, query, data_result OR error)
+    Server->>Server: Format Response (Stringify structuredResult into text block)
+    Server-->>Client: CallTool Response (content: [{type: text, text: stringifiedJSON}]) (via stdio)
+
+```
+
 ## Prerequisites
 
 *   [Node.js](https://nodejs.org/) (LTS version recommended)
 *   [Yarn](https://yarnpkg.com/) (Classic or Berry)
 *   A BlazeSQL account with an API Key (Team Advanced subscription required for the API).
 *   At least one database connection configured in your BlazeSQL account.
+*   BlazeSQL Natural Language Query API Documentation: [https://help.blazesql.com/en/article/natural-language-query-api-1fgx4au/](https://help.blazesql.com/en/article/natural-language-query-api-1fgx4au/)
 
 ## Setup
 
