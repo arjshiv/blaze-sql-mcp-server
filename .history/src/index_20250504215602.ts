@@ -1,0 +1,150 @@
+#!/usr/bin/env node
+
+/**
+ * MCP Server for interacting with the BlazeSQL Natural Language Query API.
+ * Exposes the BlazeSQL query functionality as an MCP tool.
+ */
+
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  CallToolResultSchema,
+} from "@modelcontextprotocol/sdk/types.js";
+import 'dotenv/config'; // Load environment variables from .env file
+import { queryBlazeSQL, BlazeSQLResponse } from './blazesql.js'; // Import the function and types
+
+// --- API Key Loading ---
+const apiKey = process.env.BLAZE_API_KEY;
+
+if (!apiKey) {
+    console.error("FATAL ERROR: BLAZE_API_KEY environment variable is not set.");
+    console.error("Please create a .env file based on .env.example and add your API key.");
+    process.exit(1); // Exit if the key is missing
+}
+console.error("API Key loaded successfully.");
+
+// --- Server Initialization ---
+const server = new Server(
+  {
+    name: "BlazeSQL MCP Server", // Updated server name
+    version: "0.1.0",
+  },
+  {
+    capabilities: {
+      tools: {},
+    },
+  }
+);
+
+// --- MCP Request Handlers ---
+
+/**
+ * Handler that lists available tools.
+ * Exposes a single "blazesql_query" tool.
+ */
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+  console.error("ListTools request received. Advertising blazesql_query tool.");
+  return {
+    tools: [
+      {
+        name: "blazesql_query",
+        description: "Executes a natural language query against a specified BlazeSQL database.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            db_id: { type: "string", description: "The ID of the BlazeSQL database connection to query." },
+            natural_language_request: { type: "string", description: "The query expressed in natural language (e.g., 'show me total users per city')." }
+          },
+          required: ["db_id", "natural_language_request"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            agent_response: { 
+              type: "string", 
+              description: "Natural language explanation of the results from BlazeSQL."
+            },
+            query: { 
+              type: "string", 
+              description: "The SQL query generated and executed by BlazeSQL."
+            },
+            data_result: { 
+              type: "object", 
+              description: "The structured data returned by the query, as a map of column names to value arrays.",
+              additionalProperties: { 
+                 type: "array", 
+                 items: {}
+              } 
+            }
+          },
+          required: ["agent_response", "query", "data_result"]
+        }
+      }
+    ]
+  };
+});
+
+/**
+ * Handler for the blazesql_query tool.
+ * Takes db_id and natural_language_request, calls BlazeSQL API, and returns results.
+ */
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  switch (request.params.name) {
+    case "blazesql_query": {
+      const args = request.params.arguments;
+      const db_id = args?.db_id;
+      const natural_language_request = args?.natural_language_request;
+
+      // Validate input
+      if (typeof db_id !== 'string' || !db_id) {
+        throw new Error("Missing or invalid 'db_id' argument.");
+      }
+      if (typeof natural_language_request !== 'string' || !natural_language_request) {
+        throw new Error("Missing or invalid 'natural_language_request' argument.");
+      }
+
+      console.error(`Executing BlazeSQL query for DB ID: ${db_id}`);
+      console.error(`Natural Language Request: "${natural_language_request}"`);
+
+      // Call the BlazeSQL API function
+      const result: BlazeSQLResponse = await queryBlazeSQL(db_id, natural_language_request, apiKey); // apiKey is guaranteed non-null by check above
+
+      if (result.success) {
+        console.error("BlazeSQL query successful. Returning structured object matching outputSchema.");
+        return { 
+          agent_response: result.agent_response,
+          query: result.query,
+          data_result: result.data_result 
+        };
+      } else {
+        // Handle API errors
+        console.error(`BlazeSQL API Error (Code ${result.error_code}): ${result.error}`);
+        throw new Error(`BlazeSQL API Error: ${result.error}`); // Throw error to be caught by MCP server framework
+      }
+    }
+
+    default:
+      console.error(`Unknown tool called: ${request.params.name}`);
+      throw new Error(`Unknown tool: ${request.params.name}`);
+  }
+});
+
+// --- Server Startup ---
+console.error("BlazeSQL MCP Server configuring...");
+
+/**
+ * Start the server using stdio transport.
+ */
+async function main() {
+  const transport = new StdioServerTransport();
+  console.error("Connecting transport...");
+  await server.connect(transport);
+  console.error("BlazeSQL MCP Server is running and connected via stdio.");
+}
+
+main().catch((error) => {
+  console.error("Server encountered fatal error:", error);
+  process.exit(1);
+});

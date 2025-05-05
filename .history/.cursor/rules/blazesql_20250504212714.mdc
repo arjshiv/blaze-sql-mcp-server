@@ -1,0 +1,15 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# BlazeSQL API Rules
+
+- Use the Natural Language Query API endpoint: `POST https://api.blazesql.com/natural_language_query_api`.
+- Authentication requires a valid API key passed in the request body (`api_key`).
+- Required request parameters: `db_id`, `natural_language_request`, `api_key`.
+- Expect successful responses with `success: true` and fields: `message`, `query`, `agent_response`, `data_result`.
+- Handle potential errors based on the documented error codes (400, 401, 403, 404, 500, 504).
+- Respect API rate limits (60 requests/hour) and timeouts (8 minutes).
+- The API key should be sourced securely from environment variables (`BLAZE_API_KEY`), not hardcoded.
+- Refer to BlazeSQL API docs: https://help.blazesql.com/en/article/natural-language-query-api-1fgx4au/

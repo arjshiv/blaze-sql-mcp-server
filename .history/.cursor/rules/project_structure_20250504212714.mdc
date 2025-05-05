@@ -1,0 +1,13 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Project Structure & General Rules
+
+- Maintain the project structure: `src/` for source code, `build/` for compiled output.
+- Use TypeScript for all source code.
+- Follow standard TypeScript coding conventions.
+- Add comments only for non-trivial logic.
+- Ensure environment variables (like API keys) are loaded via `.env` and not committed (use `.env.example` for templates).
+- Write unit tests for core functionality where appropriate.

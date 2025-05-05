@@ -1,0 +1,11 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Model Context Protocol (MCP) Rules
+
+- Adhere to the MCP specification found at https://github.com/modelcontextprotocol/modelcontextprotocol.
+- Ensure all necessary MCP fields are included in requests and responses where applicable.
+- Validate incoming MCP requests against the schema.
+- Structure responses according to the MCP format.
