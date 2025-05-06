@@ -1,16 +1,18 @@
 # BlazeSQL MCP Server
 
-This project implements a Model Context Protocol (MCP) server that acts as a proxy to the BlazeSQL Natural Language Query API. It allows MCP-compatible clients (like Cursor, Claude 3 with tool use, the MCP Inspector, etc.) to interact with BlazeSQL using natural language.
+This project implements a Model Context Protocol (MCP) server using the `@modelcontextprotocol/sdk` that acts as a proxy to the BlazeSQL Natural Language Query API. It allows MCP-compatible clients (like Cursor, Claude 3 with tool use, the MCP Inspector, etc.) to interact with BlazeSQL using natural language.
 
 ## Features
 
+*   Built using the modern `McpServer` helper class from the MCP SDK.
 *   Exposes the BlazeSQL Natural Language Query API as an MCP tool named `blazesql_query`.
+*   Uses `zod` for robust validation of tool input parameters.
 *   Handles API key authentication securely via environment variables.
 *   Communicates with clients using the standard MCP stdio transport.
 
 ## Workflow Diagram
 
-This diagram shows the sequence of interactions when a client uses the `blazesql_query` tool:
+This diagram shows the sequence of interactions when a client uses the `blazesql_query` tool (Note: The internal server logic now uses `McpServer` which simplifies tool registration compared to the low-level handlers shown in the diagram):
 
 ```mermaid
 sequenceDiagram
@@ -28,8 +30,8 @@ sequenceDiagram
     Server->>BlazeAPI: POST /natural_language_query_api (apiKey, db_id, nl_request)
     BlazeAPI->>BlazeAPI: Process Query (NL->SQL, Execute)
     BlazeAPI-->>Server: HTTPS Response (JSON: agent_response, query, data_result OR error)
-    Server->>Server: Format Response (Stringify structuredResult into text block)
-    Server-->>Client: CallTool Response (content: [{type: text, text: stringifiedJSON}]) (via stdio)
+    Server->>Server: Format Response (Agent response, SQL, and data into single text block)
+    Server-->>Client: CallTool Response (content: [{type: text, text: formattedMarkdown}]) (via stdio)
 
 ```
 
@@ -53,6 +55,7 @@ sequenceDiagram
     ```bash
     yarn install
     ```
+    This will install all necessary dependencies, including the `@modelcontextprotocol/sdk`, `dotenv`, and `zod`.
 
 3.  **Configure Environment Variables:**
     *   Copy the example environment file:
@@ -119,6 +122,7 @@ Once connected, the client can call the `blazesql_query` tool.
 *   **Arguments:**
     *   `db_id` (string, required): The ID of the target database connection in your BlazeSQL account. You can find this ID in the BlazeSQL web application when managing your database connections.
     *   `natural_language_request` (string, required): The query you want to execute, written in plain English (e.g., "show me the total number of users").
+    *(Input is validated using `zod`)*
 
 *   **Example Call (using `mcp test` syntax for illustration):**
     ```bash
@@ -126,8 +130,29 @@ Once connected, the client can call the `blazesql_query` tool.
     ```
 
 *   **Output:**
-    If successful, the tool returns:
-    *   A `text` block containing the natural language response from the BlazeSQL agent.
-    *   A `code` block (language `sql`) containing the SQL query generated and executed by BlazeSQL.
-    *   A `json` block containing the actual data results from the query.
-    If unsuccessful, it returns an MCP error message.
+    If successful, the tool returns a single `text` content block containing:
+    *   The natural language response from the BlazeSQL agent.
+    *   The generated SQL query within a Markdown code fence (```sql ... ```).
+    *   The data results formatted as JSON within a Markdown code fence (```json ... ```).
+
+    Example structure within the `text` block:
+    ```markdown
+    **Agent Response:**
+    The total sales last month were $12345.67.
+
+    **Generated SQL:**
+    ```sql
+    SELECT sum(sales_amount) FROM sales WHERE sale_date >= date('now', '-1 month');
+    ```
+
+    **Data Result (JSON):**
+    ```json
+    [
+      {
+        "sum(sales_amount)": 12345.67
+      }
+    ]
+    ```
+    ```
+
+    If unsuccessful, it returns a `text` content block containing the error message from the BlazeSQL API and marks the response as an error (`isError: true`).
