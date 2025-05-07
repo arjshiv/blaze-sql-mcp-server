@@ -1,5 +1,7 @@
 # BlazeSQL MCP Server
 
+[![smithery badge](https://smithery.ai/badge/@arjshiv/blaze-sql-mcp-server)](https://smithery.ai/server/@arjshiv/blaze-sql-mcp-server)
+
 This project implements a Model Context Protocol (MCP) server using the `@modelcontextprotocol/sdk` that acts as a proxy to the BlazeSQL Natural Language Query API. It allows MCP-compatible clients (like Cursor, Claude 3 with tool use, the MCP Inspector, etc.) to interact with BlazeSQL using natural language.
 
 ## Features
@@ -156,3 +158,13 @@ Once connected, the client can call the `blazesql_query` tool.
     ```
 
     If unsuccessful, it returns a `text` content block containing the error message from the BlazeSQL API and marks the response as an error (`isError: true`).
+
+### Installing via Smithery
+
+To install BlazeSQL Natural Language Query Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@arjshiv/blaze-sql-mcp-server):
+
+```bash
+npx -y @smithery/cli install @arjshiv/blaze-sql-mcp-server --client claude
+```
+
+### Installing Manually
