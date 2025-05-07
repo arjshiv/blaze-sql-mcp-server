@@ -1,0 +1,23 @@
+# Smithery configuration file: https://smithery.ai/docs/build/project-config
+
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema defining the configuration options for the MCP.
+    type: object
+    required:
+      - blazeApiKey
+    properties:
+      blazeApiKey:
+        type: string
+        description: BlazeSQL API key
+  commandFunction:
+    # A JS function that produces the CLI command based on the given config to start the MCP on stdio.
+    |-
+    (config) => ({
+      command: 'node',
+      args: ['build/index.js'],
+      env: { BLAZE_API_KEY: config.blazeApiKey }
+    })
+  exampleConfig:
+    blazeApiKey: YOUR_BLAZE_API_KEY_HERE
