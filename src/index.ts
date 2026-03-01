@@ -39,22 +39,31 @@ server.tool(
     },
     // Tool handler function - TS should infer params type from raw shape now
     async (params) => {
+        console.error("[index.ts] Entered blazesql_query tool handler");
+        const blazesql_query_tool_startTime = Date.now(); // Start timer manually
+        console.error("[index.ts] Received params:", params);
         const { db_id, natural_language_request } = params;
 
         // Input validation is handled by Zod schema above
+        console.error("[index.ts] Zod validation passed (implicitly by reaching this point)");
 
-        console.error(`Executing BlazeSQL query for DB ID: ${db_id}`);
-        console.error(`Natural Language Request: "${natural_language_request}"`);
+        console.error(`[index.ts] Executing BlazeSQL query for DB ID: ${db_id}`);
+        console.error(`[index.ts] Natural Language Request: "${natural_language_request}"`);
 
+        console.error("[index.ts] Calling queryBlazeSQL...");
         // Call the BlazeSQL API function - apiKey is guaranteed non-null here
         const result: BlazeSQLResponse = await queryBlazeSQL(db_id, natural_language_request, apiKey!);
+        console.error("[index.ts] queryBlazeSQL returned. Success:", result.success);
 
         if (result.success) {
-            console.error("BlazeSQL query successful. Returning structured results as formatted text.");
+            console.error("[index.ts] BlazeSQL query successful. Formatting structured results.");
 
             // Format the output into a single text block with Markdown
             const outputText = `**Agent Response:**\n${result.agent_response}\n\n**Generated SQL:**\n\`\`\`sql\n${result.query ?? "-- No SQL query returned"}\n\`\`\`\n\n**Data Result (JSON):**\n\`\`\`json\n${JSON.stringify(result.data_result ?? {}, null, 2)}\n\`\`\`\n`;
+            console.error("[index.ts] Formatted outputText:", outputText);
 
+            console.error(`blazesql_query_tool_execution_time: ${Date.now() - blazesql_query_tool_startTime}ms`); // End timer manually to stderr
+            console.error("[index.ts] Returning success response.");
             // Return a single text content block
             return {
                 content: [
@@ -66,7 +75,9 @@ server.tool(
             };
         } else {
             // Handle API errors - Throwing an error is standard for tool failures
-            console.error(`BlazeSQL API Error (Code ${result.error_code}): ${result.error}`);
+            console.error(`[index.ts] BlazeSQL API Error (Code ${result.error_code}): ${result.error}`);
+            console.error(`blazesql_query_tool_execution_time: ${Date.now() - blazesql_query_tool_startTime}ms`); // End timer manually to stderr
+            console.error("[index.ts] Returning error response.");
             // Return error message as text content
             return {
                 content: [
