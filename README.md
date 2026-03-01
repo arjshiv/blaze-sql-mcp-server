@@ -98,6 +98,41 @@ This server uses the **stdio** transport mechanism.
 3.  The Inspector UI will launch, automatically connecting to your server.
 4.  Navigate to the "Tools" tab to interact with the `blazesql_query` tool.
 
+### Using MCPorter
+
+[MCPorter](https://github.com/steipete/mcporter) can discover this server automatically via the project-level config at `config/mcporter.json`.
+
+1.  **From within the project directory**, mcporter picks up the config automatically:
+    ```bash
+    # List available tools
+    npx mcporter list
+
+    # Call the blazesql_query tool
+    npx mcporter call blazesql.blazesql_query db_id:"your_db_id" natural_language_request:"show me total users"
+    ```
+
+2.  **Ad-hoc usage** (from anywhere, no config file needed):
+    ```bash
+    npx mcporter call --stdio "node /path/to/blaze-sql-mcp-server/build/index.js" --name blazesql blazesql.blazesql_query db_id:"your_db_id" natural_language_request:"total sales last month"
+    ```
+
+3.  **Add to your global mcporter config** (`~/.mcporter/mcporter.json`):
+    ```jsonc
+    {
+      "mcpServers": {
+        "blazesql": {
+          "command": "node",
+          "args": ["/absolute/path/to/blaze-sql-mcp-server/build/index.js"],
+          "env": {
+            "BLAZE_API_KEY": "${BLAZE_API_KEY}"
+          }
+        }
+      }
+    }
+    ```
+
+Make sure `BLAZE_API_KEY` is set in your environment or in the `env` block above.
+
 ### Using Integrated Clients (Cursor, Claude 3, etc.)
 
 1.  **Start the server** in a terminal:
