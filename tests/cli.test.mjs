@@ -31,7 +31,7 @@ test("cli prints version", () => {
   const result = runCli(["--version"]);
 
   assert.equal(result.status, 0);
-  assert.match(result.stdout, /^0\.2\.0/m);
+  assert.match(result.stdout, /^0\.3\.0/m);
 });
 
 test("doctor emits json diagnostics", () => {
