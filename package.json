@@ -1,6 +1,6 @@
 {
   "name": "blaze-sql-server",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "Blaze SQL MCP server for natural language queries to your database",
   "private": true,
   "type": "module",
