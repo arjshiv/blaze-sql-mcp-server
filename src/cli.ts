@@ -1,6 +1,7 @@
 import { parseArgs } from "node:util";
 
 import { loadRuntimeConfig } from "./config.js";
+import { runDoctorCommand } from "./doctor-command.js";
 import { createLogger } from "./logger.js";
 import { CLI_NAME, SERVER_NAME, SERVER_VERSION } from "./metadata.js";
 import { runDirectQuery } from "./query-command.js";
@@ -12,12 +13,14 @@ function renderHelp(): string {
 Usage:
   ${CLI_NAME} serve
   ${CLI_NAME} query --db-id <id> --request <text>
+  ${CLI_NAME} doctor [--json]
   ${CLI_NAME} --help
   ${CLI_NAME} --version
 
 Commands:
   serve      Start the MCP server over stdio.
   query      Execute a BlazeSQL natural-language request directly.
+  doctor     Check runtime configuration and print a safe diagnostic summary.
   help       Show this help text.
   version    Print the CLI version.
 `;
@@ -38,6 +41,15 @@ function renderQueryHelp(): string {
 Options:
   --db-id <id>        BlazeSQL database ID to query.
   --request <text>    Natural-language request to send to BlazeSQL.
+`;
+}
+
+function renderDoctorHelp(): string {
+  return `Usage:
+  ${CLI_NAME} doctor [--json]
+
+Options:
+  --json              Emit diagnostic details as JSON.
 `;
 }
 
@@ -95,6 +107,31 @@ export async function runCli(argv: string[]): Promise<number> {
     return runDirectQuery(config, logger, {
       dbId: parsedArgs.values["db-id"],
       naturalLanguageRequest: parsedArgs.values.request,
+    });
+  }
+
+  if (command === "doctor") {
+    const parsedArgs = parseArgs({
+      args: argv.slice(1),
+      allowPositionals: false,
+      options: {
+        json: {
+          type: "boolean",
+        },
+        help: {
+          type: "boolean",
+          short: "h",
+        },
+      },
+    });
+
+    if (parsedArgs.values.help) {
+      process.stdout.write(renderDoctorHelp());
+      return 0;
+    }
+
+    return runDoctorCommand({
+      json: parsedArgs.values.json ?? false,
     });
   }
 

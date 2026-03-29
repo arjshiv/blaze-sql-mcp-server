@@ -10,6 +10,19 @@ export interface RuntimeConfig {
   requestTimeoutMs: number;
 }
 
+export interface RuntimeHealth {
+  ok: boolean;
+  errors: string[];
+  values: {
+    apiKeyPresent: boolean;
+    apiKeyPreview: string | null;
+    endpoint: string | null;
+    logLevel: string | null;
+    maxResponseChars: number | null;
+    requestTimeoutMs: number | null;
+  };
+}
+
 function parseLogLevel(value: string | undefined): LogLevel {
   switch (value?.trim().toLowerCase()) {
     case undefined:
@@ -87,6 +100,14 @@ function parseEndpoint(env: NodeJS.ProcessEnv): string {
   return endpoint.toString();
 }
 
+function maskApiKey(apiKey: string): string {
+  if (apiKey.length <= 4) {
+    return "****";
+  }
+
+  return `${"*".repeat(Math.max(4, apiKey.length - 4))}${apiKey.slice(-4)}`;
+}
+
 export function loadRuntimeConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): RuntimeConfig {
@@ -116,5 +137,78 @@ export function loadRuntimeConfig(
       1_000,
       120_000,
     ),
+  };
+}
+
+export function inspectRuntimeConfig(
+  env: NodeJS.ProcessEnv = process.env,
+): RuntimeHealth {
+  const errors: string[] = [];
+  const apiKey = env.BLAZE_API_KEY?.trim();
+
+  let endpoint: string | null = null;
+  let logLevel: string | null = null;
+  let maxResponseChars: number | null = null;
+  let requestTimeoutMs: number | null = null;
+
+  if (!apiKey) {
+    errors.push("BLAZE_API_KEY is missing.");
+  }
+
+  try {
+    endpoint = parseEndpoint(env);
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : "Invalid BlazeSQL endpoint.");
+  }
+
+  try {
+    logLevel = parseLogLevel(env.BLAZE_LOG_LEVEL);
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : "Invalid log level.");
+  }
+
+  try {
+    maxResponseChars = parsePositiveInteger(
+      env.BLAZE_MAX_RESPONSE_CHARS,
+      20_000,
+      "BLAZE_MAX_RESPONSE_CHARS",
+      1_000,
+      200_000,
+    );
+  } catch (error) {
+    errors.push(
+      error instanceof Error
+        ? error.message
+        : "Invalid BLAZE_MAX_RESPONSE_CHARS value.",
+    );
+  }
+
+  try {
+    requestTimeoutMs = parsePositiveInteger(
+      env.BLAZE_REQUEST_TIMEOUT_MS,
+      15_000,
+      "BLAZE_REQUEST_TIMEOUT_MS",
+      1_000,
+      120_000,
+    );
+  } catch (error) {
+    errors.push(
+      error instanceof Error
+        ? error.message
+        : "Invalid BLAZE_REQUEST_TIMEOUT_MS value.",
+    );
+  }
+
+  return {
+    ok: errors.length === 0,
+    errors,
+    values: {
+      apiKeyPresent: Boolean(apiKey),
+      apiKeyPreview: apiKey ? maskApiKey(apiKey) : null,
+      endpoint,
+      logLevel,
+      maxResponseChars,
+      requestTimeoutMs,
+    },
   };
 }
