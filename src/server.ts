@@ -2,10 +2,11 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 import { BlazeSQLResponse, queryBlazeSQL } from "./blazesql.js";
+import type { Logger } from "./logger.js";
 import { SERVER_NAME, SERVER_VERSION, QUERY_TOOL_NAME } from "./metadata.js";
 import { formatBlazeSqlSuccess } from "./output.js";
 
-export function createBlazeSqlServer(apiKey: string): McpServer {
+export function createBlazeSqlServer(apiKey: string, logger: Logger): McpServer {
   const server = new McpServer({
     name: SERVER_NAME,
     version: SERVER_VERSION,
@@ -24,12 +25,13 @@ export function createBlazeSqlServer(apiKey: string): McpServer {
         ),
     },
     async (params) => {
-      console.error("[server] Entered blazesql_query tool handler");
       const toolStartTime = Date.now();
       const { db_id, natural_language_request } = params;
 
-      console.error(`[server] Executing BlazeSQL query for DB ID: ${db_id}`);
-      console.error(`[server] Natural Language Request: "${natural_language_request}"`);
+      logger.debug("Received BlazeSQL query request", {
+        dbId: db_id,
+        requestLength: natural_language_request.length,
+      });
 
       const result: BlazeSQLResponse = await queryBlazeSQL(
         db_id,
@@ -37,12 +39,11 @@ export function createBlazeSqlServer(apiKey: string): McpServer {
         apiKey,
       );
 
-      console.error("[server] queryBlazeSQL returned. Success:", result.success);
-
       if (result.success) {
-        console.error(
-          `[server] Tool execution completed in ${Date.now() - toolStartTime}ms`,
-        );
+        logger.info("BlazeSQL query completed successfully", {
+          dbId: db_id,
+          durationMs: Date.now() - toolStartTime,
+        });
 
         return {
           content: [
@@ -54,12 +55,12 @@ export function createBlazeSqlServer(apiKey: string): McpServer {
         };
       }
 
-      console.error(
-        `[server] BlazeSQL API Error (Code ${result.error_code}): ${result.error}`,
-      );
-      console.error(
-        `[server] Tool execution completed in ${Date.now() - toolStartTime}ms`,
-      );
+      logger.error("BlazeSQL query failed", {
+        dbId: db_id,
+        durationMs: Date.now() - toolStartTime,
+        errorCode: result.error_code,
+        error: result.error,
+      });
 
       return {
         content: [{ type: "text" as const, text: `BlazeSQL API Error: ${result.error}` }],
