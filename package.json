@@ -22,12 +22,12 @@
     "build-and-inspect": "pnpm run build && pnpm run inspector"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.11.0",
-    "dotenv": "^16.5.0",
-    "zod": "^3.23.8"
+    "@modelcontextprotocol/sdk": "^1.28.0",
+    "dotenv": "^17.3.1",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@types/node": "^20.11.24",
-    "typescript": "^5.3.3"
+    "@types/node": "^24.12.0",
+    "typescript": "^5.9.3"
   }
 }
