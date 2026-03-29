@@ -51,7 +51,7 @@ Options:
 }
 export async function runCli(argv) {
     const command = argv[0];
-    if (!command || isHelpFlag(command) || command === "help") {
+    if (isHelpFlag(command) || command === "help") {
         process.stdout.write(renderHelp());
         return 0;
     }
@@ -59,7 +59,7 @@ export async function runCli(argv) {
         process.stdout.write(`${SERVER_VERSION}\n`);
         return 0;
     }
-    if (command === "serve") {
+    if (!command || command === "serve") {
         const config = loadRuntimeConfig();
         const logger = createLogger(config.logLevel);
         await startStdioServer(config, logger);
