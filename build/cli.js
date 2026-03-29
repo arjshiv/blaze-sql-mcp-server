@@ -1,17 +1,21 @@
+import { parseArgs } from "node:util";
 import { loadRuntimeConfig } from "./config.js";
 import { createLogger } from "./logger.js";
 import { CLI_NAME, SERVER_NAME, SERVER_VERSION } from "./metadata.js";
+import { runDirectQuery } from "./query-command.js";
 import { startStdioServer } from "./serve.js";
 function renderHelp() {
     return `${SERVER_NAME}
 
 Usage:
   ${CLI_NAME} serve
+  ${CLI_NAME} query --db-id <id> --request <text>
   ${CLI_NAME} --help
   ${CLI_NAME} --version
 
 Commands:
   serve      Start the MCP server over stdio.
+  query      Execute a BlazeSQL natural-language request directly.
   help       Show this help text.
   version    Print the CLI version.
 `;
@@ -21,6 +25,15 @@ function isHelpFlag(argument) {
 }
 function isVersionFlag(argument) {
     return argument === "-v" || argument === "--version";
+}
+function renderQueryHelp() {
+    return `Usage:
+  ${CLI_NAME} query --db-id <id> --request <text>
+
+Options:
+  --db-id <id>        BlazeSQL database ID to query.
+  --request <text>    Natural-language request to send to BlazeSQL.
+`;
 }
 export async function runCli(argv) {
     const command = argv[0];
@@ -37,6 +50,38 @@ export async function runCli(argv) {
         const logger = createLogger(config.logLevel);
         await startStdioServer(config, logger);
         return 0;
+    }
+    if (command === "query") {
+        const parsedArgs = parseArgs({
+            args: argv.slice(1),
+            allowPositionals: false,
+            options: {
+                "db-id": {
+                    type: "string",
+                },
+                request: {
+                    type: "string",
+                },
+                help: {
+                    type: "boolean",
+                    short: "h",
+                },
+            },
+        });
+        if (parsedArgs.values.help) {
+            process.stdout.write(renderQueryHelp());
+            return 0;
+        }
+        if (!parsedArgs.values["db-id"] || !parsedArgs.values.request) {
+            process.stderr.write(`Missing required options.\n\n${renderQueryHelp()}`);
+            return 1;
+        }
+        const config = loadRuntimeConfig();
+        const logger = createLogger(config.logLevel);
+        return runDirectQuery(config, logger, {
+            dbId: parsedArgs.values["db-id"],
+            naturalLanguageRequest: parsedArgs.values.request,
+        });
     }
     process.stderr.write(`Unknown command: ${command}\n\n${renderHelp()}`);
     return 1;
