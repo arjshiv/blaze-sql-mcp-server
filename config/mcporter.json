@@ -3,9 +3,7 @@
     "blazesql": {
       "description": "BlazeSQL natural language database query server",
       "command": "node",
-      "args": [
-        "build/index.js"
-      ],
+      "args": ["build/index.js"],
       "env": {
         "BLAZE_API_KEY": "${BLAZE_API_KEY}"
       }

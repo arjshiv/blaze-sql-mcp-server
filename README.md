@@ -13,7 +13,7 @@ It supports two modes:
 - CLI commands: `serve`, `query`, `doctor`, `help`, `version`
 - Security defaults: HTTPS-only remote endpoints, bounded timeouts, redacted logging, capped formatted output
 - Validation: runtime config validation plus BlazeSQL response-shape validation
-- Tooling: `pnpm`, CI, and automated tests via the Node test runner
+- Tooling: `pnpm`, CI, automated tests, and project-level `mcporter` config
 
 ## Requirements
 
@@ -65,11 +65,25 @@ node build/index.js serve
 The exposed MCP tool is:
 
 - `blazesql_query`
-
-Arguments:
-
 - `db_id`: BlazeSQL database ID
 - `natural_language_request`: the prompt to send to BlazeSQL
+
+## Use With MCPorter
+
+[MCPorter](https://github.com/steipete/mcporter) can discover this server automatically via the project-level config at `config/mcporter.json`.
+
+From the project root:
+
+```bash
+npx mcporter list
+npx mcporter call blazesql.blazesql_query db_id:"your_db_id" natural_language_request:"show me total users"
+```
+
+Ad hoc usage from anywhere:
+
+```bash
+npx mcporter call --stdio "node /path/to/blaze-sql-mcp-server/build/index.js" --name blazesql blazesql.blazesql_query db_id:"your_db_id" natural_language_request:"total sales last month"
+```
 
 ## Run As CLI
 
