@@ -32,10 +32,13 @@ function isVersionFlag(argument) {
 function renderQueryHelp() {
     return `Usage:
   ${CLI_NAME} query --db-id <id> --request <text>
+  ${CLI_NAME} query <id> <text>
 
 Options:
   --db-id <id>        BlazeSQL database ID to query.
   --request <text>    Natural-language request to send to BlazeSQL.
+  --format <type>     One of: markdown, text, json.
+  --stdin             Read the request body from stdin.
 `;
 }
 function renderDoctorHelp() {
@@ -65,9 +68,12 @@ export async function runCli(argv) {
     if (command === "query") {
         const parsedArgs = parseArgs({
             args: argv.slice(1),
-            allowPositionals: false,
+            allowPositionals: true,
             options: {
                 "db-id": {
+                    type: "string",
+                },
+                format: {
                     type: "string",
                 },
                 request: {
@@ -77,21 +83,44 @@ export async function runCli(argv) {
                     type: "boolean",
                     short: "h",
                 },
+                stdin: {
+                    type: "boolean",
+                },
             },
         });
         if (parsedArgs.values.help) {
             process.stdout.write(renderQueryHelp());
             return 0;
         }
-        if (!parsedArgs.values["db-id"] || !parsedArgs.values.request) {
+        const dbId = parsedArgs.values["db-id"] ?? parsedArgs.positionals[0];
+        let naturalLanguageRequest = parsedArgs.values.request ?? parsedArgs.positionals.slice(1).join(" ").trim();
+        if (!naturalLanguageRequest && (parsedArgs.values.stdin || !process.stdin.isTTY)) {
+            naturalLanguageRequest = await new Promise((resolve, reject) => {
+                const chunks = [];
+                process.stdin.on("data", (chunk) => {
+                    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+                });
+                process.stdin.on("end", () => {
+                    resolve(Buffer.concat(chunks).toString("utf8").trim());
+                });
+                process.stdin.on("error", reject);
+            });
+        }
+        const outputFormat = parsedArgs.values.format ?? "markdown";
+        if (!["markdown", "text", "json"].includes(outputFormat)) {
+            process.stderr.write(`Invalid --format value: ${outputFormat}\n\n${renderQueryHelp()}`);
+            return 1;
+        }
+        if (!dbId || !naturalLanguageRequest) {
             process.stderr.write(`Missing required options.\n\n${renderQueryHelp()}`);
             return 1;
         }
         const config = loadRuntimeConfig();
         const logger = createLogger(config.logLevel);
         return runDirectQuery(config, logger, {
-            dbId: parsedArgs.values["db-id"],
-            naturalLanguageRequest: parsedArgs.values.request,
+            dbId,
+            format: outputFormat,
+            naturalLanguageRequest,
         });
     }
     if (command === "doctor") {
