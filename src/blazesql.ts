@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 // --- Interfaces based on BlazeSQL Docs ---
 
 export interface BlazeSQLRequest {
@@ -27,6 +29,63 @@ export type BlazeSQLResponse = BlazeSQLSuccessResponse | BlazeSQLErrorResponse;
 export interface BlazeSQLClientOptions {
     endpoint: string;
     requestTimeoutMs: number;
+}
+
+const blazeSQLSuccessResponseSchema = z.object({
+    success: z.literal(true),
+    message: z.string().optional(),
+    query: z.string().optional(),
+    agent_response: z.string().default("BlazeSQL returned no natural-language summary."),
+    data_result: z.unknown().optional(),
+});
+
+const blazeSQLErrorResponseSchema = z.object({
+    success: z.literal(false),
+    error: z.string().default("BlazeSQL returned an unknown error."),
+    error_code: z.number().int().nonnegative().default(500),
+});
+
+function parseBlazeSQLResponse(
+    payload: unknown,
+    statusCode: number,
+): BlazeSQLResponse {
+    const successResult = blazeSQLSuccessResponseSchema.safeParse(payload);
+    if (successResult.success) {
+        return successResult.data as BlazeSQLSuccessResponse;
+    }
+
+    const errorResult = blazeSQLErrorResponseSchema.safeParse(payload);
+    if (errorResult.success) {
+        return errorResult.data;
+    }
+
+    return {
+        success: false,
+        error: "BlazeSQL returned an unexpected response shape.",
+        error_code: statusCode,
+    };
+}
+
+async function parseJsonResponse(response: Response): Promise<BlazeSQLResponse> {
+    const rawBody = await response.text();
+
+    if (!rawBody.trim()) {
+        return {
+            success: false,
+            error: "BlazeSQL returned an empty response body.",
+            error_code: response.status || 502,
+        };
+    }
+
+    try {
+        return parseBlazeSQLResponse(JSON.parse(rawBody), response.status || 200);
+    } catch {
+        return {
+            success: false,
+            error: "BlazeSQL returned a non-JSON response body.",
+            error_code: response.status || 502,
+        };
+    }
 }
 
 // --- API Interaction Function ---
@@ -67,32 +126,37 @@ export async function queryBlazeSQL(
 
 
         if (!response.ok) {
-            // Attempt to parse error response from Blaze, otherwise throw generic error
-            try {
-                const errorData: BlazeSQLErrorResponse = await response.json() as BlazeSQLErrorResponse;
-                 return { // Return a structured error matching BlazeSQLErrorResponse
-                     success: false,
-                     error: errorData.error || `HTTP error! status: ${response.status}`,
-                     error_code: errorData.error_code || response.status,
-                 };
-            } catch (parseError) {
-                 return { // Return a structured error matching BlazeSQLErrorResponse
-                     success: false,
-                     error: `HTTP error! status: ${response.status}. Failed to parse error response.`,
-                     error_code: response.status,
-                 };
+            const parsedError = await parseJsonResponse(response);
+            if (!parsedError.success) {
+                return {
+                    success: false,
+                    error: parsedError.error || `HTTP error! status: ${response.status}`,
+                    error_code: parsedError.error_code || response.status,
+                };
             }
+
+            return {
+                success: false,
+                error: `HTTP error! status: ${response.status}`,
+                error_code: response.status,
+            };
         }
 
-        const data: BlazeSQLResponse = await response.json() as BlazeSQLResponse;
-        return data;
+        return await parseJsonResponse(response);
 
     } catch (error) {
-        console.error('Error querying BlazeSQL:', error);
+        const isTimeout =
+            error instanceof Error &&
+            (error.name === "TimeoutError" || error.name === "AbortError");
+
          return { // Return a structured error matching BlazeSQLErrorResponse
              success: false,
-             error: error instanceof Error ? error.message : 'An unknown error occurred during the API request.',
-             error_code: 500, // Generic internal/network error
+             error: isTimeout
+                ? `BlazeSQL request timed out after ${options.requestTimeoutMs}ms.`
+                : error instanceof Error
+                    ? error.message
+                    : 'An unknown error occurred during the API request.',
+             error_code: isTimeout ? 408 : 500, // Generic internal/network error
          };
     }
 }
