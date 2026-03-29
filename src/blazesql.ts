@@ -1,5 +1,3 @@
-import fetch from 'node-fetch'; // Using node-fetch for compatibility, could use native fetch in newer Node versions
-
 // --- Interfaces based on BlazeSQL Docs ---
 
 export interface BlazeSQLRequest {

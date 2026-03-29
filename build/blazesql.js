@@ -1,4 +1,4 @@
-import fetch from 'node-fetch'; // Using node-fetch for compatibility, could use native fetch in newer Node versions
+// --- Interfaces based on BlazeSQL Docs ---
 // --- API Interaction Function ---
 /**
  * Sends a natural language query to the BlazeSQL API.

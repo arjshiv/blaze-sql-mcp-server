@@ -5,6 +5,9 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.17.1",
+  "engines": {
+    "node": ">=20.11.0"
+  },
   "bin": {
     "blaze-sql-server": "./build/index.js"
   },
@@ -20,9 +23,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.11.0",
-    "@types/node-fetch": "^2.6.12",
     "dotenv": "^16.5.0",
-    "node-fetch": "^3.3.2",
     "zod": "^3.23.8"
   },
   "devDependencies": {
