@@ -1,5 +1,60 @@
 import type { BlazeSQLSuccessResponse } from "./blazesql.js";
 
-export function formatBlazeSqlSuccess(result: BlazeSQLSuccessResponse): string {
-  return `**Agent Response:**\n${result.agent_response}\n\n**Generated SQL:**\n\`\`\`sql\n${result.query ?? "-- No SQL query returned"}\n\`\`\`\n\n**Data Result (JSON):**\n\`\`\`json\n${JSON.stringify(result.data_result ?? {}, null, 2)}\n\`\`\`\n`;
+export interface FormattedBlazeSqlSuccess {
+  text: string;
+  wasTruncated: boolean;
+}
+
+function truncateText(
+  value: string,
+  maxChars: number,
+): { text: string; wasTruncated: boolean } {
+  if (value.length <= maxChars) {
+    return { text: value, wasTruncated: false };
+  }
+
+  return {
+    text: `${value.slice(0, Math.max(0, maxChars - 26))}\n... [output truncated]`,
+    wasTruncated: true,
+  };
+}
+
+function stringifyJson(value: unknown): string {
+  try {
+    return JSON.stringify(value ?? {}, null, 2);
+  } catch {
+    return JSON.stringify(
+      {
+        error: "Unable to serialize BlazeSQL data_result as JSON.",
+      },
+      null,
+      2,
+    );
+  }
+}
+
+export function formatBlazeSqlSuccess(
+  result: BlazeSQLSuccessResponse,
+  maxResponseChars: number,
+): FormattedBlazeSqlSuccess {
+  const agentResponse = truncateText(
+    result.agent_response,
+    Math.max(400, Math.floor(maxResponseChars * 0.25)),
+  );
+  const generatedSql = truncateText(
+    result.query ?? "-- No SQL query returned",
+    Math.max(400, Math.floor(maxResponseChars * 0.25)),
+  );
+  const dataResult = truncateText(
+    stringifyJson(result.data_result ?? {}),
+    Math.max(800, Math.floor(maxResponseChars * 0.5)),
+  );
+
+  return {
+    text: `**Agent Response:**\n${agentResponse.text}\n\n**Generated SQL:**\n\`\`\`sql\n${generatedSql.text}\n\`\`\`\n\n**Data Result (JSON):**\n\`\`\`json\n${dataResult.text}\n\`\`\`\n`,
+    wasTruncated:
+      agentResponse.wasTruncated ||
+      generatedSql.wasTruncated ||
+      dataResult.wasTruncated,
+  };
 }

@@ -2,11 +2,15 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 
 import { BlazeSQLResponse, queryBlazeSQL } from "./blazesql.js";
+import type { RuntimeConfig } from "./config.js";
 import type { Logger } from "./logger.js";
 import { SERVER_NAME, SERVER_VERSION, QUERY_TOOL_NAME } from "./metadata.js";
 import { formatBlazeSqlSuccess } from "./output.js";
 
-export function createBlazeSqlServer(apiKey: string, logger: Logger): McpServer {
+export function createBlazeSqlServer(
+  config: RuntimeConfig,
+  logger: Logger,
+): McpServer {
   const server = new McpServer({
     name: SERVER_NAME,
     version: SERVER_VERSION,
@@ -36,20 +40,26 @@ export function createBlazeSqlServer(apiKey: string, logger: Logger): McpServer 
       const result: BlazeSQLResponse = await queryBlazeSQL(
         db_id,
         natural_language_request,
-        apiKey,
+        config.apiKey,
       );
 
       if (result.success) {
+        const formattedResult = formatBlazeSqlSuccess(
+          result,
+          config.maxResponseChars,
+        );
+
         logger.info("BlazeSQL query completed successfully", {
           dbId: db_id,
           durationMs: Date.now() - toolStartTime,
+          truncated: formattedResult.wasTruncated,
         });
 
         return {
           content: [
             {
               type: "text" as const,
-              text: formatBlazeSqlSuccess(result),
+              text: formattedResult.text,
             },
           ],
         };

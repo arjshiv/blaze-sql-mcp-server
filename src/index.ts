@@ -13,7 +13,7 @@ import { createBlazeSqlServer } from "./server.js";
 async function main() {
   const config = loadRuntimeConfig();
   const logger = createLogger(config.logLevel);
-  const server = createBlazeSqlServer(config.apiKey, logger);
+  const server = createBlazeSqlServer(config, logger);
   const transport = new StdioServerTransport();
 
   logger.info(`${SERVER_NAME} configuring`);

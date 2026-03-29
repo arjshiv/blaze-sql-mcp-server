@@ -3,7 +3,7 @@ import { z } from "zod";
 import { queryBlazeSQL } from "./blazesql.js";
 import { SERVER_NAME, SERVER_VERSION, QUERY_TOOL_NAME } from "./metadata.js";
 import { formatBlazeSqlSuccess } from "./output.js";
-export function createBlazeSqlServer(apiKey, logger) {
+export function createBlazeSqlServer(config, logger) {
     const server = new McpServer({
         name: SERVER_NAME,
         version: SERVER_VERSION,
@@ -22,17 +22,19 @@ export function createBlazeSqlServer(apiKey, logger) {
             dbId: db_id,
             requestLength: natural_language_request.length,
         });
-        const result = await queryBlazeSQL(db_id, natural_language_request, apiKey);
+        const result = await queryBlazeSQL(db_id, natural_language_request, config.apiKey);
         if (result.success) {
+            const formattedResult = formatBlazeSqlSuccess(result, config.maxResponseChars);
             logger.info("BlazeSQL query completed successfully", {
                 dbId: db_id,
                 durationMs: Date.now() - toolStartTime,
+                truncated: formattedResult.wasTruncated,
             });
             return {
                 content: [
                     {
                         type: "text",
-                        text: formatBlazeSqlSuccess(result),
+                        text: formattedResult.text,
                     },
                 ],
             };
