@@ -4,6 +4,7 @@
   "description": "Blaze SQL MCP server for natural language queries to your database",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.17.1",
   "bin": {
     "blaze-sql-server": "./build/index.js"
   },
