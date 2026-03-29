@@ -22,7 +22,10 @@ export function createBlazeSqlServer(config, logger) {
             dbId: db_id,
             requestLength: natural_language_request.length,
         });
-        const result = await queryBlazeSQL(db_id, natural_language_request, config.apiKey);
+        const result = await queryBlazeSQL(db_id, natural_language_request, config.apiKey, {
+            endpoint: config.endpoint,
+            requestTimeoutMs: config.requestTimeoutMs,
+        });
         if (result.success) {
             const formattedResult = formatBlazeSqlSuccess(result, config.maxResponseChars);
             logger.info("BlazeSQL query completed successfully", {

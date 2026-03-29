@@ -41,6 +41,10 @@ export function createBlazeSqlServer(
         db_id,
         natural_language_request,
         config.apiKey,
+        {
+          endpoint: config.endpoint,
+          requestTimeoutMs: config.requestTimeoutMs,
+        },
       );
 
       if (result.success) {

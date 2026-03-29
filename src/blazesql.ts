@@ -1,7 +1,5 @@
 import fetch from 'node-fetch'; // Using node-fetch for compatibility, could use native fetch in newer Node versions
 
-const BLAZE_API_ENDPOINT = 'https://api.blazesql.com/natural_language_query_api';
-
 // --- Interfaces based on BlazeSQL Docs ---
 
 export interface BlazeSQLRequest {
@@ -28,6 +26,11 @@ export interface BlazeSQLErrorResponse {
 
 export type BlazeSQLResponse = BlazeSQLSuccessResponse | BlazeSQLErrorResponse;
 
+export interface BlazeSQLClientOptions {
+    endpoint: string;
+    requestTimeoutMs: number;
+}
+
 // --- API Interaction Function ---
 
 /**
@@ -41,7 +44,8 @@ export type BlazeSQLResponse = BlazeSQLSuccessResponse | BlazeSQLErrorResponse;
 export async function queryBlazeSQL(
     dbId: string,
     naturalLanguageRequest: string,
-    apiKey: string
+    apiKey: string,
+    options: BlazeSQLClientOptions
 ): Promise<BlazeSQLResponse> {
     if (!apiKey) {
         throw new Error('BlazeSQL API key is missing. Ensure BLAZE_API_KEY is set in your environment.');
@@ -54,11 +58,12 @@ export async function queryBlazeSQL(
     };
 
     try {
-        const response = await fetch(BLAZE_API_ENDPOINT, {
+        const response = await fetch(options.endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
+            signal: AbortSignal.timeout(options.requestTimeoutMs),
             body: JSON.stringify(requestBody),
         });
 
